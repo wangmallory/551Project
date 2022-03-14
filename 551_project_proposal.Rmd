@@ -9,7 +9,7 @@ output: html_document
 Introduce your project team members, propose a data set and plan what to do with it. Following the guidelines described below, you should write down a 2–3 pages plan for the project. Communicate to the instructors if you are unsure of the chosen data set and the methods you plan to pursue.
 
 ### Goal: 
-The problem of interest is to estimate the expected carbon emission in two countries by 2050. Utilizing datasets for National Carbon Emission from CDIAC and UNFCCC by nation, we can make estimates for United States and another country across two different sources. The final goal is to develop a model for estimating carbon emissions for two countries and then generate predictions for next 25 years.  
+The problem of interest is to estimate the expected carbon emission in G20 countries by 2050. Utilizing datasets for National Carbon Emission from CDIAC and UNFCCC by nation, we can make estimates for G20 countries across two different sources. The final goal is to develop a model for estimating carbon emissions for G20 countries and then generate predictions for next 25 years.  
 
 ### Data:
 * How is the data collected?
@@ -28,7 +28,7 @@ We may include additional data outside of population and gdp. If we do, we will 
 
 * If you were able to collect the data, what would you have done differently?
 
-In a perfect scientific vacuum, we would have a sensor in our two countries of interest that can measure the values for the entire country accurately. 
+In a perfect scientific vacuum, we would have accurate sensors in all countries of interest that can measure the values for the entire country over the course of many years. 
 
 * Are you going to account for the data collecting process in your analysis?
 
@@ -50,14 +50,22 @@ We plan to do the work / roles equally for all parts of the project from code to
 ### Project Plan
 * What statistical model are you going to use for the data analysis?
 
-
+We plan to start our analysis by understanding the distributions of our variables and how these distributions change over time. Using this analysis, we will fit appropriate prior distributions to all of our variables and perform Bayesian linear regression. We then will then leave out most recent years from the dataset and see how well our model performs at prediction in the short term. Depending on how well our model does, we will then fit our model to the entire dataset and extrapolate predictions outside of the dataset.
 
 * Have you done any preliminary analysis of the data?
 
+Very early analysis of our data shows that G20 countries lack issues of scarcity over all variables of interest.
 
 * What is your group’s time line for (1) propose and fit a preliminary model, (2) examine initial results and adjust models further if needed, (3) prepare for a presentation, (4) summarize and write a final report.
 
+Our project timeline is as follows: 
 
+(1) EDA and preliminary model completed by 3/25
+(2) Initial results and adjustments completed by 4/8
+(3) Preparations for presentation completed by 4/15
+(4) Final report completed by 4/15
+
+Final report can be done in tandem with other aspects of the project.
 
 * What are the (potential) difficulties with your data analysis?
 
