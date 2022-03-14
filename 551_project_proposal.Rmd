@@ -1,0 +1,64 @@
+---
+title: "551 Project Proposal"
+author: "Noah Kochanski and Mallory Wang"
+date: "Due March 15, 2022"
+output: html_document
+---
+
+## Project proposal: 
+Introduce your project team members, propose a data set and plan what to do with it. Following the guidelines described below, you should write down a 2–3 pages plan for the project. Communicate to the instructors if you are unsure of the chosen data set and the methods you plan to pursue.
+
+### Goal: 
+The problem of interest is to estimate the expected carbon emission in two countries by 2050. Utilizing datasets for National Carbon Emission from CDIAC and UNFCCC by nation, we can make estimates for United States and another country across two different sources. The final goal is to develop a model for estimating carbon emissions for two countries and then generate predictions for next 25 years.  
+
+### Data:
+* How is the data collected?
+
+From the Carbon Dioxide Information Analysis Center (CDIAC), 1959-2011 (and preliminary data for 2012-2014) estimates for fossil fuels are derived primarily from energy statistics published by the United Nations (2017), using the methods of Marland and Rotty (1984).
+
+* Is the data a simple random sample from some population?
+
+We can assume the data is simple random sample and it is definitely from some population.
+
+* What is the potential defect in the data?
+
+The data is country reported, calibrated by United Nations, which means data could not be accurate. However, for the purposes of this assignment, we will attempt to estimate according to reported values as truths. 
+
+* If you were able to collect the data, what would you have done differently?
+
+In a perfect scientific vacuum, we would have a sensor in our two countries of interest that can measure the values for the entire country accurately. 
+
+* Are you going to account for the data collecting process in your analysis?
+
+No. We will assume the data is correct. 
+
+* Describe simple facts about the data: size, data structure source, etc.
+
+55 data points (years) as vector. We do also have population and and GDP, also reported by countries, calibrated by United Nations. 
+
+### Collaboration Plan:
+* How are you going to divide the work? How often are you going to meet with each other?
+
+We plan to collaborate equally on the work, meaning every aspect will be checked by the other member. We plan on meeting at least once a week but more fluidly, sync via text as needed. 
+
+* For each group member: what is your role in the group project? What is your contribution so far? How do you plan to contribute further throughout the whole project?
+
+We plan to do the work / roles equally for all parts of the project from code to write-up. 
+
+### Project Plan
+* What statistical model are you going to use for the data analysis?
+
+
+
+* Have you done any preliminary analysis of the data?
+
+
+* What is your group’s time line for (1) propose and fit a preliminary model, (2) examine initial results and adjust models further if needed, (3) prepare for a presentation, (4) summarize and write a final report.
+
+
+
+* What are the (potential) difficulties with your data analysis?
+
+```{r}
+
+```
