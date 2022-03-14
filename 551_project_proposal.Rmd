@@ -22,7 +22,9 @@ We can assume the data is simple random sample and it is definitely from some po
 
 * What is the potential defect in the data?
 
-The data is country reported, calibrated by United Nations, which means data could not be accurate. However, for the purposes of this assignment, we will attempt to estimate according to reported values as truths. 
+The data is country reported, calibrated by United Nations, which means data could not be accurate. However, for the purposes of this assignment, we will attempt to make estimates according to reported values as truths. Fortunately for us, the core data (carbon dioxide levels) requires very little cleaning as it is reviewed by the United Nations. We don't need to be concerned with missing data (for most countries; some countries started reporting information at a later date) or structural problems. We also don't need to worry about outliers; some countries might be considered outliers but we are picking United States and comparable country. 
+
+We may include additional data outside of population and gdp. If we do, we will ensure follow general data cleaning methods. 
 
 * If you were able to collect the data, what would you have done differently?
 
