@@ -69,6 +69,8 @@ Final report can be done in tandem with other aspects of the project.
 
 * What are the (potential) difficulties with your data analysis?
 
+Since this is real data, there could be the possibility that our data does not (or we do not know what) fit distribution well, ie. for prior. If we produce posteriors that heavily relies on prior, we could generate biased results. We could also run into computation issues when seeking conversion on simulated steps. 
+
 ```{r}
 
 ```

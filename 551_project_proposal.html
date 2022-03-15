@@ -375,11 +375,11 @@ plan to pursue.</p>
 <div id="goal" class="section level3">
 <h3>Goal:</h3>
 <p>The problem of interest is to estimate the expected carbon emission
-in two countries by 2050. Utilizing datasets for National Carbon
-Emission from CDIAC and UNFCCC by nation, we can make estimates for
-United States and another country across two different sources. The
-final goal is to develop a model for estimating carbon emissions for two
-countries and then generate predictions for next 25 years.</p>
+in G20 countries by 2050. Utilizing datasets for National Carbon
+Emission from CDIAC and UNFCCC by nation, we can make estimates for G20
+countries across two different sources. The final goal is to develop a
+model for estimating carbon emissions for G20 countries and then
+generate predictions for next 25 years.</p>
 </div>
 <div id="data" class="section level3">
 <h3>Data:</h3>
@@ -415,9 +415,9 @@ do, we will ensure follow general data cleaning methods.</p>
 <li>If you were able to collect the data, what would you have done
 differently?</li>
 </ul>
-<p>In a perfect scientific vacuum, we would have a sensor in our two
+<p>In a perfect scientific vacuum, we would have accurate sensors in all
 countries of interest that can measure the values for the entire country
-accurately.</p>
+over the course of many years.</p>
 <ul>
 <li>Are you going to account for the data collecting process in your
 analysis?</li>
@@ -450,16 +450,45 @@ from code to write-up.</p>
 <div id="project-plan" class="section level3">
 <h3>Project Plan</h3>
 <ul>
-<li><p>What statistical model are you going to use for the data
-analysis?</p></li>
-<li><p>Have you done any preliminary analysis of the data?</p></li>
-<li><p>What is your group’s time line for (1) propose and fit a
-preliminary model, (2) examine initial results and adjust models further
-if needed, (3) prepare for a presentation, (4) summarize and write a
-final report.</p></li>
-<li><p>What are the (potential) difficulties with your data
-analysis?</p></li>
+<li>What statistical model are you going to use for the data
+analysis?</li>
 </ul>
+<p>We plan to start our analysis by understanding the distributions of
+our variables and how these distributions change over time. Using this
+analysis, we will fit appropriate prior distributions to all of our
+variables and perform Bayesian linear regression. We then will then
+leave out most recent years from the dataset and see how well our model
+performs at prediction in the short term. Depending on how well our
+model does, we will then fit our model to the entire dataset and
+extrapolate predictions outside of the dataset.</p>
+<ul>
+<li>Have you done any preliminary analysis of the data?</li>
+</ul>
+<p>Very early analysis of our data shows that G20 countries lack issues
+of scarcity over all variables of interest.</p>
+<ul>
+<li>What is your group’s time line for (1) propose and fit a preliminary
+model, (2) examine initial results and adjust models further if needed,
+(3) prepare for a presentation, (4) summarize and write a final
+report.</li>
+</ul>
+<p>Our project timeline is as follows:</p>
+<ol style="list-style-type: decimal">
+<li>EDA and preliminary model completed by 3/25</li>
+<li>Initial results and adjustments completed by 4/8</li>
+<li>Preparations for presentation completed by 4/15</li>
+<li>Final report completed by 4/15</li>
+</ol>
+<p>Final report can be done in tandem with other aspects of the
+project.</p>
+<ul>
+<li>What are the (potential) difficulties with your data analysis?</li>
+</ul>
+<p>Since this is real data, there could be the possibility that our data
+does not (or we do not know what) fit distribution well, ie. for prior.
+If we produce posteriors that heavily relies on prior, we could generate
+biased results. We could also run into computation issues when seeking
+conversion on simulated steps.</p>
 </div>
 </div>
 
