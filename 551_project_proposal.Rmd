@@ -36,7 +36,18 @@ No. We will assume the data is correct.
 
 * Describe simple facts about the data: size, data structure source, etc.
 
-55 data points (years) as vector. We do also have population and and GDP, also reported by countries, calibrated by United Nations. 
+Our core dataset has 55 data points (years) of CO2 emissions (PgC/yr) for every country. It also comes with two auxiliary features:
+
+1. Population: size of population by country (in 100000)
+2. GDP: Gross Domestic Product -- total monetary or market value of all finished goods and services produced within the country (dollars)
+
+Since our data is split by year and country, we can easily include additional auxiliary data (source: World Bank):
+
+a. Average Income: average income of working population (dollars)
+b. Urbanization Rate: share of total population living in urban areas
+c. Energy Consumption: average electrical energy per capita (kWh)
+d. Energy Intensity: tonnes of oil per million USD
+e. Industrial Structure: composition of country's economic activity / the production of human material 
 
 ### Collaboration Plan:
 * How are you going to divide the work? How often are you going to meet with each other?
