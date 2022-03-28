@@ -46,7 +46,15 @@ data <- left_join(data$`Territorial Emissions CDIAC`, data$`Territorial Emission
 
 colnames(data) <- c("year", "country", "emissions_CDIAC", "emissions_UNFCCC", "consum_emissions_UNFCCC", "transfers_UNFCCC")
 
+# getting g20 countries
 data <- data %>% filter(country %in% g20)
+
+# replacing NAs and turning columns into numeric
+data[data == "NaN"] <- NA
+cols.num <- colnames(data)[3:6]
+data[cols.num] <- sapply(data[cols.num],as.numeric)
+sapply(data, class)
+
 
 head(data)
 
