@@ -33,11 +33,11 @@ var = c("co2","pop","gdp","gdpg","gdi","inc","urban","energy","eng_imp","elec")
 code = c("EN.ATM.CO2E.KT","SP.POP.TOTL","NY.GDP.MKTP.CD","NY.GDP.MKTP.KD.ZG","NY.GDY.TOTL.KN","BN.GSR.FCTY.CD",
          "EN.URB.MCTY.TL.ZS","EG.USE.PCAP.KG.OE","EG.IMP.CONS.ZS","EG.USE.ELEC.KH.PC")
 
-df = list()
 for (i in 1:length(var)) {
   temp = data.frame(year = yr, 
-                    co2 = as.numeric(us_alldata_clean[which(us_alldata_clean$`Indicator Code` == code[i]),5:66]))
-  df = append(df, assign(paste0("us_",var[i]), temp))
+                    x = as.numeric(us_alldata_clean[which(us_alldata_clean$`Indicator Code` == code[i]),5:66]))
+  colnames(temp) = c("year", as.character(var[i]))
+  assign(paste0("us_",var[i]), temp)
 }
 
 # Data Cleaning
@@ -49,11 +49,16 @@ for (i in 1:length(var)) {
 # us_en_imp is missing data after 2015
 # us_elec is missing data after 2014
 
-us_co2 = drop_na(us_co2)
-us_gdpg = drop_na(us_gdpg)
-us_gdi = drop_na(us_gdi)
-us_inc = drop_na(us_inc)
-us_energy = drop_na(us_energy)
-us_eng_imp = drop_na(us_eng_imp)
-us_elec = drop_na(us_elec)
+data_ls = list(us_co2 = us_co2, 
+               us_pop = us_pop, 
+               us_gdp = us_gdp, 
+               us_gdpg = us_gdpg, 
+               us_gdi = us_gdi, 
+               us_inc = us_inc, 
+               us_urban = us_urban, 
+               us_energy = us_energy, 
+               us_eng_imp = us_eng_imp, 
+               us_elec = us_elec)
 
+data_ls = data_ls %>% reduce(full_join, by='year')
+write.csv(data_ls, "us_df.csv")
