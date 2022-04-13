@@ -61,4 +61,4 @@ data_ls = list(us_co2 = us_co2,
                us_elec = us_elec)
 
 data_ls = data_ls %>% reduce(full_join, by='year')
-write.csv(data_ls, "us_df.csv")
+write.csv(data_ls, "us_df.csv", row.names = FALSE)
