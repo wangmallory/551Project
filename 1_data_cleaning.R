@@ -33,16 +33,16 @@ var = c("co2","pop","gdp","gdpg","gdi","inc","urban","energy","eng_imp","elec")
 code = c("EN.ATM.CO2E.KT","SP.POP.TOTL","NY.GDP.MKTP.CD","NY.GDP.MKTP.KD.ZG","NY.GDY.TOTL.KN","BN.GSR.FCTY.CD",
          "EN.URB.MCTY.TL.ZS","EG.USE.PCAP.KG.OE","EG.IMP.CONS.ZS","EG.USE.ELEC.KH.PC")
 
+df = list()
 for (i in 1:length(var)) {
   temp = data.frame(year = yr, 
                     co2 = as.numeric(us_alldata_clean[which(us_alldata_clean$`Indicator Code` == code[i]),5:66]))
-  
-  assign(paste0("us_",var[i]), temp)
+  df = append(df, assign(paste0("us_",var[i]), temp))
 }
 
 # Data Cleaning
 # us_co2 missing 2018 and after
-# us_gdpi missing 1960
+# us_gdpg missing 1960
 # us_gdi is missing data before 1970
 # us_inc is missing data before 1970
 # us_energy is missing data after 2015
@@ -50,9 +50,10 @@ for (i in 1:length(var)) {
 # us_elec is missing data after 2014
 
 us_co2 = drop_na(us_co2)
-us_gdpi = drop_.na(us_gdpi)
+us_gdpg = drop_na(us_gdpg)
 us_gdi = drop_na(us_gdi)
 us_inc = drop_na(us_inc)
 us_energy = drop_na(us_energy)
 us_eng_imp = drop_na(us_eng_imp)
 us_elec = drop_na(us_elec)
+
