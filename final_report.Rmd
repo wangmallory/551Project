@@ -1,0 +1,42 @@
+---
+title: "Bayesian Forecasting of C02 Emissions"
+author: "Noah Kochanski, Mallory Wang"
+date: "4/13/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Introduction
+
+Global warming is the change in the Earth's weather patterns over a extend period of time. Although Earth's climate changing has been a phenomenon that has occurred many times in the past, scientists agree that human activities over the past 100 years are accelerating the speed at which global warming is happening. One variable increasing the speed of global warming is through the greenhouse gas, carbon dioxide (C02).  Although C02 is released through natural processes such as breathing and decomposition, humans have been adding C02 to the atmosphere at unprecedented rates through the burning of fossil fuels. In the United States, there has been an increasing demand to understand, predict, and reduce the carbon footprint as a nation. We look to explore the use of both classical and Bayes linear regression and compare the results when forecasting C02 emissions in the United States.
+
+## Data Introduction
+
+Our data set of interest comes from the World Bank and includes the following variables:
+
+* Year
+* C02 Emissions
+* Population
+* Gross Domestic Product
+* Gross Domestic Income
+* Net Primary Income
+* Population in Urban Agglomeration
+* Energy Use
+* Net Energy Import
+* Electric Power Consumption
+
+
+## Methods
+
+### Simple Linear Regression
+
+
+
+
+### Bayes Linear Regression
+
+
+## 
