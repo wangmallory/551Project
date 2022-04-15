@@ -36,8 +36,24 @@ ggplot(df.m, aes(year, value)) +
   facet_wrap(~variable, scales = "free", ncol = 5) +
   theme_custom()
 
-corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust", 
+corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust",
          addCoef.col = "black", 
          tl.col="black", tl.srt=40, tl.cex=1.5,
          diag=FALSE, 
          number.cex=1)
+
+
+# Correlation plot
+
+library(corrplot)
+library(RColorBrewer)
+library(ggpubr)
+
+
+M <- na.omit(us_df[,-1])
+colnames(M) <- c("C02", "Population", "GDP", "GDP Growth", "GDI", "Income", "Urban", "Energy", "Energy Import", "Electricity")
+M <-cor(M)
+
+corrplot(M, order = "hclust", type = "lower") + title("Correlation Plot for C02 Emissions Data")
+
+
