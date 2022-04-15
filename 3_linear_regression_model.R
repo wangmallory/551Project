@@ -25,6 +25,56 @@ us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
 
 us_lm_stan = summary(stan_glm(co2 ~ ., data = us_df))
 
+# Linear Regression
+S = 5000
+X = cbind(rep(1, dim(us_df)[1]), seq(1, dim(us_df)[1], by = 1))
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 1
+s20 = 0.25
+set.seed(4444)
+inv = solve
+# Run linear regression gibbs sampling and obtain a posterior predictive distribution
+usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
+  
+  # Store samples
+  BETA = matrix(nrow = S, ncol = length(beta0))
+  SIGMA = numeric(S)
+  
+  # Starting values - just use prior values?
+  beta = c(midrange(us_df$co2), 0)
+  s2 = 0.7^2
+  
+  # Gibbs sampling algorithm from 9.2.1
+  for (s in 1:S) {
+    # 1a) Compute V and m
+    V = inv(inv(sigma0) + (t(X) %*% X) / s2)
+    m = V %*% (inv(sigma0) %*% beta0 + (t(X) %*% y) / s2)
+    
+    # 1b) sample beta
+    beta = mvrnorm(1, m, V)
+    
+    # 2a) Compute SSR(beta) (specific formula from 9.1)
+    ssr = (t(y) %*% y) - (2 * t(beta) %*% t(X) %*% y) + (t(beta) %*% t(X) %*% X %*% beta)
+    
+    # 2b) sample s2
+    s2 = 1 / rgamma(1, (nu0 + n) / 2, (nu0 * s20 + ssr) / 2)
+    BETA[s, ] = beta
+    SIGMA[s] = s2
+  }
+  
+  # Now sample posterior predictive - two weeks later
+  xpred = c(1, 56)
+  YPRED = rnorm(S, BETA %*% xpred, sqrt(SIGMA))
+  
+  YPRED
+})
+
+mean(usco2_pred) # 2024 CO2 emissions prediction using only time 
+
 # Linear Regression: Model Selection
 #' Initiate variables -- prior is midpoint of range
 S = 5000
