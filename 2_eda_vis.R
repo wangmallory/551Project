@@ -5,7 +5,7 @@
 library(tidyverse)
 library(ggplot2)
 library(reshape)
-
+library(corrplot)
 # Functions
 theme_custom <- function() {
   theme_bw() + # note ggplot2 theme is used as a basis
@@ -35,3 +35,9 @@ ggplot(df.m, aes(year, value)) +
   geom_line() + 
   facet_wrap(~variable, scales = "free", ncol = 5) +
   theme_custom()
+
+corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust", 
+         addCoef.col = "black", 
+         tl.col="black", tl.srt=40, tl.cex=1.5,
+         diag=FALSE, 
+         number.cex=1)
