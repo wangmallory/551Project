@@ -25,6 +25,7 @@ us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
 
 us_lm_stan = summary(stan_glm(co2 ~ ., data = us_df))
 
+# Linear Regression: Model Selection
 #' Initiate variables -- prior is midpoint of range
 S = 5000
 X = as.matrix(us_df[,-2])
@@ -90,5 +91,3 @@ E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
 beta <- t(t(E%*%chol(Vb))+c(Eb))
 
 t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
-
-# 
