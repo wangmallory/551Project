@@ -74,3 +74,8 @@ for(s in 1:S){
   }
   Z[s,]<-z
 }
+
+colSums(Z)/S
+
+t(apply(colSums(Z)/S, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
+
