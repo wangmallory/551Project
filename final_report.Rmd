@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ## Introduction
 
-Global warming is the change in the Earth's weather patterns over a extend period of time. Although Earth's climate changing has been a phenomenon that has occurred many times in the past, scientists agree that human activities over the past 100 years are accelerating the speed at which global warming is happening. One variable increasing the speed of global warming is through the greenhouse gas, carbon dioxide (C02).  Although C02 is released through natural processes such as breathing and decomposition, humans have been adding C02 to the atmosphere at unprecedented rates through the burning of fossil fuels. In the United States, there has been an increasing demand to understand, predict, and reduce the carbon footprint as a nation. We look to explore the use of both classical and Bayes linear regression and compare the results when forecasting C02 emissions in the United States.
+Global warming is the change in the Earth's weather patterns over a extend period of time. Although Earth's climate changing has been a phenomenon that has occurred many times in the past, scientists agree that human activities over the past 100 years are accelerating the speed at which global warming is happening. Carbon dioxide (CO2) is one variable increasing the speed of global warming through the greenhouse gas.  Although CO2 is released through natural processes such as breathing and decomposition, humans have been adding C02 to the atmosphere at unprecedented rates through the burning of fossil fuels. In the United States, there has been an increasing demand to understand, predict, and reduce the carbon footprint as a nation. We look to explore the use of both classical and Bayes linear regression and compare the results when forecasting CO2 emissions in the United States.
 
 ## Data Introduction
 
@@ -31,10 +31,21 @@ Our data set of interest comes from the World Bank and includes the following va
 
 ## Methods
 
-### Simple Linear Regression
+### Classical Linear Regression
+
+The first method that we propose to use is by linear regression. Since we are attempting to forecast future CO2 emissions, we use the following model, 
+$$Y_t = \beta' \begin{bmatrix} X_{t-1} \\ X_{t-2}\end{bmatrix} + \epsilon_t$$
+where $Y_t$ is the observation at time, $t$.  
+
+```{r, echo = FALSE}
+us_df <- read.csv("us_df.csv")
+library(tidyverse)
+
+model_1 <- lm(co2~. ,data = us_df)
 
 
-
+summary(model_1)
+```
 
 ### Bayes Linear Regression
 
