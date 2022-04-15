@@ -39,7 +39,7 @@ nu0 = 2
 s20 = 1
 set.seed(4444)
 inv = solve
-# Run linear regression 
+# Run linear regression with g-prior
 Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
 SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
 
@@ -77,5 +77,18 @@ for(s in 1:S){
 
 colSums(Z)/S
 
-t(apply(colSums(Z)/S, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
+X = X*Z[1:dim(X)[1],]
+Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
+SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
 
+s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
+
+Vb <- g*solve(t(X)%*%X)/(g+1)
+Eb <- Vb%*%t(X)%*%y
+
+E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
+beta <- t(t(E%*%chol(Vb))+c(Eb))
+
+t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
+
+# 
