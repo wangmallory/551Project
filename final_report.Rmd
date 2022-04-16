@@ -62,7 +62,7 @@ library(leaps)
 # lagging the data 5 years
 lag5 <- us_df %>% mutate_all(lag, n = 5) 
 colnames(lag5) <- paste(colnames(us_df), "_5", sep="")
-lagged_data <- cbind(us_df, lag5) %>% dplyr::select(-c(3:12))
+lagged_data <- cbind(us_df, lag5) %>% dplyr::select(-c(3:12)) %>% na.omit()
 
 # fitting the full model
 full_model <- lm(co2~. ,data = lagged_data)
@@ -72,7 +72,7 @@ models <- regsubsets(co2~., data = lagged_data, nvmax = 5, method = "backward")
 summary(models)
 ```
 
-As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption. We now fit a model which is trained on data from 1975-2004 and tested on data from 2005-2018.  
+As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption. We now fit a model which is trained on data from 1975-2004 and tested on data from 2014-2018.  
 
 
 
@@ -80,18 +80,20 @@ As seen by the output above, the most important lagged variables which I will in
 library(tidyverse)
 library(leaps)
 
-train <- lagged_data %>% na.omit() %>% filter(year %in% 1975:2004) %>% select("co2","pop_5", "gdi_5", "inc_5", "urban_5", "elec_5")
-test <- lagged_data %>% na.omit() %>% filter(year %in% 2005:2018) %>% select("co2", "pop_5", "gdi_5", "inc_5", "urban_5", "elec_5")
+train <- lagged_data %>% na.omit() %>% filter(year %in% 1975:2013) %>% select("co2","pop_5", "gdi_5", "inc_5", "urban_5", "elec_5")
+test <- lagged_data %>% na.omit() %>% filter(year %in% 2014:2018) %>% select("co2", "pop_5", "gdi_5", "inc_5", "urban_5", "elec_5")
 
 model_1 <- lm(co2~., data = train)
 
 preds <- data.frame(preds = c(predict(model_1, train[,-1]), predict(model_1, test[,-1])))
 
 plot_data <- cbind(preds, lagged_data[,1:2])
+
+
 ggplot(data = pivot_longer(plot_data, cols = c("preds", "co2")), aes(x= year, y = value, color = name)) + geom_line() + geom_vline(xintercept = 2013)
 
 ```
+
 ### Bayes Linear Regression
 
 
-## 
