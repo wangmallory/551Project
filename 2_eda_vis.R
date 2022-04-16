@@ -42,6 +42,14 @@ corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust",
          diag=FALSE, 
          number.cex=1)
 
+# line graph CO2 emissions
+ggplot(us_df, aes(x = year, y = co2)) + 
+  geom_line() + 
+  theme_custom()+
+  ggtitle("U.S. CO2 Emissions") +
+  ylab("CO2 Emissions (Kilotons)") +
+  xlab("Year")
+
 
 # Correlation plot
 
