@@ -10,6 +10,7 @@ library(reshape)
 library(rstan)
 library(rstanarm)
 library(glmnet)
+library(resample)
 set.seed(4444)
 
 # Data 
@@ -75,6 +76,70 @@ usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
 
 mean(usco2_pred) # 2024 CO2 emissions prediction using only time 
 
+signif = apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)) %>%
+  apply(MARGIN = 2, FUN = function(y) !(y[1] < 0 && 0 < y[3]))
+beta_df = as.data.frame(beta) %>%
+  gather(key = 'variable', val = 'coefficient') %>%
+  mutate(signif = signif[variable])
+ggplot(beta_df, aes(x = variable, y = coefficient, color = signif)) +
+  stat_summary(fun = mean, fun.min = function(y) quantile(y, probs = c(0.025)), fun.max = function(y) quantile(y, probs = c(0.975))) +
+  geom_hline(yintercept = 0, lty = 2)
+
+# Check how good the model is
+N = 10000
+pred_errors = t(sapply(1:N, function(i) {
+  y = us_df$co2
+  X = as.matrix(us_df[,-2])
+  ytrain = y[1:35]
+  Xtrain = X[1:35, ]
+  ytest = y[-c(1:35)]
+  Xtest = X[-c(1:35), ]
+  
+  # OLS
+  beta_ols = inv(t(Xtrain) %*% Xtrain) %*% t(Xtrain) %*% ytrain
+  beta_ols
+  
+  y_ols = Xtest %*% beta_ols
+  
+  pred_error_ols = sum((ytest - y_ols)^2) / length(ytest)
+  
+  # Bayes
+  y = ytrain
+  X = Xtrain
+  
+  n = dim(X)[1]
+  p = dim(X)[2]
+  
+  g = n
+  nu0 = 2
+  s20 = 1
+  
+  S = 1000
+  
+  Hg = (g / (g + 1)) * X %*% inv(t(X) %*% X) %*% t(X)
+  SSRg = t(y) %*% (diag(1, nrow = n) - Hg) %*% y
+  
+  s2 = 1 / rgamma(S, (nu0 + n) / 2, (nu0 * s20 + SSRg) / 2)
+  Vb = g * inv(t(X) %*% X) / (g + 1)
+  Eb = Vb %*% t(X) %*% y
+  
+  E = matrix(rnorm(S * p, 0, sqrt(s2)), S, p)
+  beta = t(t(E %*% chol(Vb)) + c(Eb))
+  
+  beta_bayes = as.matrix(colMeans(beta))
+  
+  y_bayes = Xtest %*% beta_bayes
+  
+  pred_error_bayes = sum((ytest - y_bayes)^2) / length(ytest)
+  c(pred_error_ols, pred_error_bayes)
+})) %>% as.data.frame
+colnames(pred_errors) = c('ols', 'bayes')
+pred_diff = pred_errors %>% transmute(`bayes - ols` = bayes - ols)
+ggplot(pred_diff, aes(x = `bayes - ols`)) +
+  geom_density() +
+  geom_vline(xintercept = 0, lty = 2)
+mean(pred_errors$bayes < pred_errors$ols)
+
 # Linear Regression: Model Selection
 #' Initiate variables -- prior is midpoint of range
 S = 5000
@@ -128,16 +193,5 @@ for(s in 1:S){
 
 colSums(Z)/S
 
-X = X*Z[1:dim(X)[1],]
-Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
-SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
 
-s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
 
-Vb <- g*solve(t(X)%*%X)/(g+1)
-Eb <- Vb%*%t(X)%*%y
-
-E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
-beta <- t(t(E%*%chol(Vb))+c(Eb))
-
-t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
