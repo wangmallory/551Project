@@ -1,0 +1,53 @@
+---
+title: "Bayesian Forecasting of CO2 Emissions"
+author: "Mallory Wang, Noah Kochanski"
+date: "4/16/2022"
+output: 
+    beamer_presentation:
+      theme: "AnnArbor"
+      colortheme: "wolverine"
+      fonttheme: "serif"
+      toc: true    
+      slide_level: 3
+      number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::read_chunk("2_eda_vis.R")
+```
+
+```{r, Library and theme, echo = FALSE}
+```
+# Motivation
+
+
+# Data Introduction
+
+### Data Introduction
+- Data comes from the World Bank on the United States from 1960 to 2018
+- Includes CO2 emissions, economic data (GDP, GDI, primary income), and energy consumption
+- Many highly correlated variables
+
+
+### Data Introduction 
+
+```{r, facet, echo = FALSE, out.width = "70%", fig.align='center'}
+```
+
+
+### Data Introduction
+
+```{r, correlation plot, echo = FALSE, fig.align='center', out.width="80%"}
+
+```
+
+
+# Frequentist Approach
+
+
+# Bayesian Approach
+
+
+# Comparison
+
