@@ -1,6 +1,6 @@
 ---
 title: "Bayesian Forecasting of C02 Emissions"
-author: "Noah Kochanski, Mallory Wang"
+author: "Mallory Wang, Noah Kochanski"
 date: "4/13/2022"
 output: pdf_document
 ---

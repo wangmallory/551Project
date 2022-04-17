@@ -26,6 +26,7 @@ theme_custom <- function() {
 }
 
 
+
 ## ---- facet ----
 us_df = read.csv("us_df.csv")
 
@@ -36,7 +37,8 @@ ggplot(df.m, aes(year, value)) +
   geom_line() + 
   facet_wrap(~variable, scales = "free", ncol = 5) +
   theme_custom() +
-  scale_x_continuous(breaks=seq(1960, 2020, 40))
+  scale_x_continuous(breaks=seq(1960, 2020, 40)) +
+  ggtitle("World Bank Data plotted against time")
 
 
 ## ---- line graph----
