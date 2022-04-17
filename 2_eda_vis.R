@@ -1,12 +1,12 @@
 #' 2. Data Exploration and Visualization 
 #' As part of Stats 551 Final Project
 
-# Library
+## ---- Library and theme----
 library(tidyverse)
 library(ggplot2)
 library(reshape)
 library(corrplot)
-# Functions
+
 theme_custom <- function() {
   theme_bw() + # note ggplot2 theme is used as a basis
     theme(plot.title = element_text(size = 10, face = "bold",
@@ -25,43 +25,53 @@ theme_custom <- function() {
                                       size = 10, face = "bold"))
 }
 
-# Data
+
+
+## ---- facet ----
 us_df = read.csv("us_df.csv")
 
-# Plots
 df.m <- melt(us_df, id = c("year"))
+
 
 ggplot(df.m, aes(year, value)) + 
   geom_line() + 
   facet_wrap(~variable, scales = "free", ncol = 5) +
-  theme_custom()
+  theme_custom() +
+  scale_x_continuous(breaks=seq(1960, 2020, 40)) +
+  ggtitle("World Bank Data plotted against time")
 
-corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust",
-         addCoef.col = "black", 
-         tl.col="black", tl.srt=40, tl.cex=1.5,
-         diag=FALSE, 
-         number.cex=1)
 
-# line graph CO2 emissions
+## ---- line graph----
 ggplot(us_df, aes(x = year, y = co2)) + 
-  geom_line() + 
+  geom_line(size = 1) + 
   theme_custom()+
   ggtitle("U.S. CO2 Emissions") +
   ylab("CO2 Emissions (Kilotons)") +
-  xlab("Year")
+  xlab("Year")  
 
 
-# Correlation plot
+
+## ---- correlation plot ----
 
 library(corrplot)
 library(RColorBrewer)
 library(ggpubr)
+
+# reading data set
+us_df <- read.csv("us_df.csv")
 
 
 M <- na.omit(us_df[,-1])
 colnames(M) <- c("C02", "Population", "GDP", "GDP Growth", "GDI", "Income", "Urban", "Energy", "Energy Import", "Electricity")
 M <-cor(M)
 
-corrplot(M, order = "hclust", type = "lower") + title("Correlation Plot for C02 Emissions Data")
+corrplot(M,  order = "hclust", type = "lower", tl.srt = 45, title = "Correlation Plot", mar=c(0,0,2,0))   
 
+## ----  correlation plot 2 ----
+corrplot(cor(us_df[,-1]), method="color",type="upper", order="hclust",
+         addCoef.col = "black", 
+         tl.col="black", tl.srt=40, tl.cex=1.5,
+         diag=FALSE, 
+         number.cex=1)
 
+##
