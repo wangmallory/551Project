@@ -39,8 +39,6 @@ knitr::read_chunk("2_eda_vis.R")
 ### Data Introduction
 
 ```{r, correlation plot, echo = FALSE, fig.align='center', out.width="80%"}
-
-
 ```
 
 
