@@ -78,7 +78,7 @@ usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
 mean(usco2_pred) # 2024 CO2 emissions prediction using only time 
 
 # Check how good the model is
-N = 10000
+N = 1000
 pred_errors = t(sapply(1:N, function(i) {
   y = us_df$co2
   X = as.matrix(us_df[,-2])
@@ -221,107 +221,4 @@ ggplot(bayes_df, aes(x = observed, y = predicted)) +
 # beta_df$id = rep(1:10000,6)
 # beta_wide = reshape(beta_df, idvar = "id", timevar = "variable", direction = "wide")
 
-# Metropolis Hastings
-X = as.matrix(us_df[,-2])%>% scale()
-y = us_df[,"co2"]
 
-logit = function(p){log(p/(1-p))}
-expit = function(x){exp(x)/(1+exp(x))}
-
-fix = function(x){
-  ind = is.nan(x)|is.na(x)
-  x[ind] = 0
-  x
-}
-
-update_beta0 = function(gamma, beta, beta0){
-  beta0_p = rnorm(1, beta0, sd=2)
-  pi = expit(beta0 + as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-  pi_p =expit(beta0_p +as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-  log_a =sum(fix(y*log(pi_p))+fix((1-y)*log(1-pi_p))) +dnorm(beta0_p,mean=0,sd=4,log=TRUE)
-  log_b =sum(fix(y*log(pi))+fix((1-y)*log(1-pi))) +dnorm(beta0,mean=0,sd=4,log=TRUE)
-  log_r = log_a - log_b
-  u = runif(1)
-  beta0_new = ifelse(log(u)<=log_r, beta0_p, beta0)
-  return(beta0_new)
-}
-
-update_beta = function(gamma, beta, beta0) {
-  p =length(beta)
-  for(j in 1:p) {
-    beta_p = beta
-    beta_p[j] =rnorm(1, beta[j],sd =1)
-    pi =expit(beta0 +as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-    pi_p =expit(beta0 +as.matrix(X[,gamma==1]) %*% beta_p[gamma==1])
-    log_a =sum(fix(y*log(pi_p))+fix((1-y)*log(1-pi_p))) +dnorm(beta_p[j],mean=0,sd=2,log=TRUE)
-    log_b =sum(fix(y*log(pi))+fix((1-y)*log(1-pi))) +dnorm(beta[j],mean=0,sd=2,log=TRUE)
-    log_r = log_a - log_b
-    log_r
-    u = runif(1)
-    beta[j] = ifelse(log(u)<=log_r, beta_p[j], beta[j])
-  }
-  return(beta)
-}
-update_gamma = function(gamma, beta, beta0) {
-  p =length(gamma)
-  for(j in sample(p)) {
-    gamma_a = gamma_b = gamma
-    gamma_a[j] =1
-    gamma_b[j] =0
-    pi_a =expit(beta0 +as.matrix(X[,gamma_a==1]) %*% beta[gamma_a==1])
-    log_a =sum(fix(y*log(pi_a))+fix((1-y)*log(1-pi_a)))
-    pi_b =expit(beta0 +as.matrix(X[,gamma_b==1]) %*% beta[gamma_b==1])
-    log_b =sum(fix(y*log(pi_b))+fix((1-y)*log(1-pi_b)))
-    log_odds = log_a - log_b
-    u =runif(1)
-    gamma[j] =ifelse(u <= expit(log_odds),1,0)
-    }
-  return(gamma)
-  }
-
-# Ok! initiate values
-p = dim(X)[2]
-gamma = rep(1,p)
-beta = rep(0,p)
-beta0 = 1
-S = 10000
-B = 500
-Gamma = matrix(NA, nrow = S, ncol = p)
-Beta = matrix(NA, nrow = S, ncol = p)
-Beta0 = rep(NA, S)
-
-for (i in 1:S){
-  beta0 =update_beta0(gamma, beta, beta0)
-  beta =update_beta(gamma, beta, beta0)
-  gamma =update_gamma(gamma, beta, beta0)
-  Beta0[i] = beta0
-  Beta[i,] = beta
-  Gamma[i,] = gamma
-}
-
-Beta0 = Beta0[-(1:B)]
-Beta = Beta[-(1:B),]
-Gamma = Gamma[-(1:B),]
-
-plot(Beta0,type = "l",main = "traceplot for beta0")
-plot(Beta[,1],type = "l",main = "traceplot for beta1")
-plot(Beta[,2],type = "l",main = "traceplot for beta2")
-plot(Beta[,3],type = "l",main = "traceplot for beta3")
-plot(Beta[,4],type = "l",main = "traceplot for beta4")
-plot(Beta[,5],type = "l",main = "traceplot for beta5")
-plot(Beta[,6],type = "l",main = "traceplot for beta5")
-
-bg = Beta * Gamma
-plot(bg[,1], type = "l", main = "traceplot for beta1 * gamma1")
-plot(bg[,2], type = "l", main = "traceplot for beta2 * gamma2")
-plot(bg[,3], type = "l", main = "traceplot for beta3 * gamma3")
-plot(bg[,4], type = "l", main = "traceplot for beta4 * gamma4")
-plot(bg[,5], type = "l", main = "traceplot for beta5 * gamma5")
-plot(bg[,6], type = "l", main = "traceplot for beta6 * gamma6")
-
-plot(density(bg[,1]))
-plot(density(bg[,2]))
-plot(density(bg[,3]))
-plot(density(bg[,4]))
-plot(density(bg[,5]))
-plot(density(bg[,6]))
