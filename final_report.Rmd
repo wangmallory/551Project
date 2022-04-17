@@ -7,6 +7,10 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::read_chunk("2_eda_vis.R")
+```
+
+```{r, Library and theme, echo = FALSE}
 ```
 
 ## Introduction
@@ -30,24 +34,18 @@ Our data set of interest comes from the World Bank and includes the following va
 
 As seen in the plot below, overall, CO2 emissions have been increasing with time. The dips in the graph typically correspond to times of economic turmoil in the United States. We hope to use the variables containing information about the economic status of the country to aid in our predictions. Looking at the other variables in this data, we have variables which are highly correlated with each other. As a result, we will want to pick a subset of these variables which will aid in our forecasting model.  
 
-```{r, echo = FALSE}
-library(corrplot)
-library(RColorBrewer)
-library(ggpubr)
-
-# reading dataset
-us_df <- read.csv("us_df.csv")
 
 
-M <- na.omit(us_df[,-1])
-colnames(M) <- c("C02", "Population", "GDP", "GDP Growth", "GDI", "Income", "Urban", "Energy", "Energy Import", "Electricity")
-M <-cor(M)
-
-corrplot(M,  order = "hclust", type = "lower") 
+```{r, correlation plot, echo = FALSE}
 
 ```
 
+```{r, facet, echo = FALSE}
+```
+
 ## Methods
+
+We apply two methods to forecast CO2 emissions. We start by using a classical linear regression model and then Bayes linear regression approach. In both cases, we use data from 1975-2013 to train the model and data from 2014-2018 to compare the results. 
 
 ### Classical Linear Regression
 
@@ -56,7 +54,6 @@ $$Y_t = \beta' \begin{bmatrix} X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
 where $Y_t$ is the observation at time, $t$ and $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$. To determine the most important variables in predicting CO2 emissions, I will perform backward elimination and only keep the 5 most important predictors.
 
 ```{r, echo = TRUE}
-library(tidyverse)
 library(leaps)
 
 # lagging the data 5 years
@@ -75,8 +72,7 @@ summary(models)
 As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption. We now fit a model which is trained on data from 1975-2004 and tested on data from 2014-2018.  
 
 
-
-```{r}
+```{r, echo = FALSE}
 library(tidyverse)
 library(leaps)
 
@@ -90,10 +86,20 @@ preds <- data.frame(preds = c(predict(model_1, train[,-1]), predict(model_1, tes
 plot_data <- cbind(preds, lagged_data[,1:2])
 
 
-ggplot(data = pivot_longer(plot_data, cols = c("preds", "co2")), aes(x= year, y = value, color = name)) + geom_line() + geom_vline(xintercept = 2013)
+ggplot(data = pivot_longer(plot_data, cols = c("preds", "co2")), aes(x= year, y = value, color = name)) + geom_line() + geom_vline(xintercept = 2013) + theme_custom() + ggtitle("United States CO2 Emissions")
 
 ```
 
 ### Bayes Linear Regression
+
+
+
+## Comparison
+
+## Conclusion
+
+## References
+
+## Appendix
 
 
