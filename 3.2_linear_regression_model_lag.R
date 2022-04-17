@@ -1,7 +1,7 @@
-#' 3. Initial Modeling
+#' 3. Linear Regression Modeling - Lags
 #' As part of Stats 551 Final Project
 #' 
-#' For predicting CO2, we may want to try Linear Regression and Time Series with Bayesian to start
+
 
 # Library
 library(tidyverse)
@@ -11,23 +11,24 @@ library(rstan)
 library(rstanarm)
 library(glmnet)
 library(resample)
-library(coda)
+library(directlabels)
+library(MASS)
 set.seed(4444)
 
 # Data 
 us_df = read.csv("us_df.csv")
 us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
 
-# First, we start with a fitting a linear model inc, urban, gdpg, and eng_imp are not significant
-# and when taken out, the R^2 increases
-us.lm = lm(co2 ~ .- inc - urban - gdpg - eng_imp, data = us_df)
-us.lm$coefficients
+# Manual Lag
+lag5 <- cbind(us_df, us_df[,2:11] %>% mutate_all(lag, n = 5))
+colnames(lag5) <- c(colnames(us_df), paste(colnames(us_df[2:11]), "_5", sep=""))
 
-us_lm_stan = summary(stan_glm(co2 ~ ., data = us_df))
+us_lag_stam = summary(stan_glm(co2 ~ ., data = lag5))
 
-us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
+us_df = lag5[,-which(names(lag5) %in% c("pop","gdp","gdi","inc","co2_5","pop_5","gdp_5","gdi_5","inc_5"))]
+us_df = us_df[which(as.numeric(us_df$year) >= 1975),]
 
-# Linear Regression - only at CO2 and time
+# Linear Regression
 S = 5000
 X = cbind(rep(1, dim(us_df)[1]), seq(1, dim(us_df)[1], by = 1))
 n = dim(X)[1]
@@ -82,10 +83,10 @@ N = 10000
 pred_errors = t(sapply(1:N, function(i) {
   y = us_df$co2
   X = as.matrix(us_df[,-2])
-  ytrain = y[1:35]
-  Xtrain = X[1:35, ]
-  ytest = y[-c(1:35)]
-  Xtest = X[-c(1:35), ]
+  ytrain = y[1:30]
+  Xtrain = X[1:30, ]
+  ytest = y[-c(1:30)]
+  Xtest = X[-c(1:30), ]
   
   # OLS
   beta_ols = inv(t(Xtrain) %*% Xtrain) %*% t(Xtrain) %*% ytrain
@@ -131,7 +132,6 @@ ggplot(pred_diff, aes(x = `bayes - ols`)) +
   geom_density() +
   geom_vline(xintercept = 0, lty = 2)
 mean(pred_errors$bayes < pred_errors$ols)
-
 
 # Linear Regression: Model Selection
 #' Initiate variables -- prior is midpoint of range
@@ -199,6 +199,7 @@ E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
 beta <- t(t(E%*%chol(Vb))+c(Eb))
 
 t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
+
 signif = apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)) %>%
   apply(MARGIN = 2, FUN = function(y) !(y[1] < 0 && 0 < y[3]))
 beta_df = as.data.frame(beta) %>%
@@ -207,121 +208,3 @@ beta_df = as.data.frame(beta) %>%
 ggplot(beta_df, aes(x = variable, y = coefficient, color = signif)) +
   stat_summary(fun = mean, fun.min = function(y) quantile(y, probs = c(0.025)), fun.max = function(y) quantile(y, probs = c(0.975))) +
   geom_hline(yintercept = 0, lty = 2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-beta_bayes = as.matrix(colMeans(beta))
-y_bayes = Xtest %*% beta_bayes
-bayes_df = data.frame(
-  observed = ytest,
-  predicted = y_bayes
-)
-ggplot(bayes_df, aes(x = observed, y = predicted)) +
-  geom_point() +
-  geom_smooth(method = 'lm')
-
-# beta_df$id = rep(1:10000,6)
-# beta_wide = reshape(beta_df, idvar = "id", timevar = "variable", direction = "wide")
-
-# Metropolis Hastings
-X = as.matrix(us_df[,-2])%>% scale()
-y = us_df[,"co2"]
-
-logit = function(p){log(p/(1-p))}
-expit = function(x){exp(x)/(1+exp(x))}
-
-fix = function(x){
-  ind = is.nan(x)|is.na(x)
-  x[ind] = 0
-  x
-}
-
-update_beta0 = function(gamma, beta, beta0){
-  beta0_p = rnorm(1, beta0, sd=2)
-  pi = expit(beta0 + as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-  pi_p =expit(beta0_p +as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-  log_a =sum(fix(y*log(pi_p))+fix((1-y)*log(1-pi_p))) +dnorm(beta0_p,mean=0,sd=4,log=TRUE)
-  log_b =sum(fix(y*log(pi))+fix((1-y)*log(1-pi))) +dnorm(beta0,mean=0,sd=4,log=TRUE)
-  log_r = log_a - log_b
-  u = runif(1)
-  beta0_new = ifelse(log(u)<=log_r, beta0_p, beta0)
-  return(beta0_new)
-}
-
-update_beta = function(gamma, beta, beta0) {
-  p =length(beta)
-  for(j in 1:p) {
-    beta_p = beta
-    beta_p[j] =rnorm(1, beta[j],sd =1)
-    pi =expit(beta0 +as.matrix(X[,gamma==1]) %*% beta[gamma==1])
-    pi_p =expit(beta0 +as.matrix(X[,gamma==1]) %*% beta_p[gamma==1])
-    log_a =sum(fix(y*log(pi_p))+fix((1-y)*log(1-pi_p))) +dnorm(beta_p[j],mean=0,sd=2,log=TRUE)
-    log_b =sum(fix(y*log(pi))+fix((1-y)*log(1-pi))) +dnorm(beta[j],mean=0,sd=2,log=TRUE)
-    log_r = log_a - log_b
-    log_r
-    u = runif(1)
-    beta[j] = ifelse(log(u)<=log_r, beta_p[j], beta[j])
-  }
-  return(beta)
-}
-update_gamma = function(gamma, beta, beta0) {
-  p =length(gamma)
-  for(j in sample(p)) {
-    gamma_a = gamma_b = gamma
-    gamma_a[j] =1
-    gamma_b[j] =0
-    pi_a =expit(beta0 +as.matrix(X[,gamma_a==1]) %*% beta[gamma_a==1])
-    log_a =sum(fix(y*log(pi_a))+fix((1-y)*log(1-pi_a)))
-    pi_b =expit(beta0 +as.matrix(X[,gamma_b==1]) %*% beta[gamma_b==1])
-    log_b =sum(fix(y*log(pi_b))+fix((1-y)*log(1-pi_b)))
-    log_odds = log_a - log_b
-    u =runif(1)
-    gamma[j] =ifelse(u <= expit(log_odds),1,0)
-    }
-  return(gamma)
-  }
-
-# Ok! initiate values
-p = dim(X)[2]
-gamma = rep(1,p)
-beta = rep(0,p)
-beta0 = 1
-S = 10000
-B = 500
-Gamma = matrix(NA, nrow = S, ncol = p)
-Beta = matrix(NA, nrow = S, ncol = p)
-Beta0 = rep(NA, S)
-
-for (i in 1:S){
-  beta0 =update_beta0(gamma, beta, beta0)
-  beta =update_beta(gamma, beta, beta0)
-  gamma =update_gamma(gamma, beta, beta0)
-  Beta0[i] = beta0
-  Beta[i,] = beta
-  Gamma[i,] = gamma
-}
-
-Beta0 = Beta0[-(1:B)]
-Beta = Beta[-(1:B),]
-Gamma = Gamma[-(1:B),]
-
-plot(Beta0,type = "l",main = "traceplot for beta0")
-plot(Beta[,1],type = "l",main = "traceplot for beta1")
-plot(Beta[,2],type = "l",main = "traceplot for beta2")
-plot(Beta[,3],type = "l",main = "traceplot for beta3")
-plot(Beta[,4],type = "l",main = "traceplot for beta4")
-plot(Beta[,5],type = "l",main = "traceplot for beta5")
-plot(Beta[,6],type = "l",main = "traceplot for beta5")
-
-bg = Beta * Gamma
-plot(bg[,1], type = "l", main = "traceplot for beta1 * gamma1")
-plot(bg[,2], type = "l", main = "traceplot for beta2 * gamma2")
-plot(bg[,3], type = "l", main = "traceplot for beta3 * gamma3")
-plot(bg[,4], type = "l", main = "traceplot for beta4 * gamma4")
-plot(bg[,5], type = "l", main = "traceplot for beta5 * gamma5")
-plot(bg[,6], type = "l", main = "traceplot for beta6 * gamma6")
-
-plot(density(bg[,1]))
-plot(density(bg[,2]))
-plot(density(bg[,3]))
-plot(density(bg[,4]))
-plot(density(bg[,5]))
-plot(density(bg[,6]))
