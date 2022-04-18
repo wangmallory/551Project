@@ -21,13 +21,29 @@ knitr::read_chunk("2_eda_vis.R")
 ```
 # Motivation
 
+- Climate affects everyone on Earth
+- Considered by many to be one of the biggest threats to humanity
+- It becomes increasingly important to understand, track and predict our effect on global warming
 
 # Data Introduction
 
 ### Data Introduction
+
 - Data comes from the World Bank on the United States from 1960 to 2018
 - Includes CO2 emissions, economic data (GDP, GDI, primary income), and energy consumption
 - Many highly correlated variables
+
+### Data Introduction 
+
+- Year: annual
+- C02 Emissions: measured in kt
+- Population: total population
+- Population in Urban Agglomeration: population in urban agglomerations of more than one million
+- Economic Data:
+  - Gross Domestic Product, Gross Domestic Income, Net Primary Income
+- Energy Data: 
+  - Energy Use, Net Energy Import, Electric Power Consumption
+
 
 
 ### Data Introduction 
@@ -43,6 +59,7 @@ knitr::read_chunk("2_eda_vis.R")
 
 
 # Frequentist Approach
+
 
 
 # Bayesian Approach
