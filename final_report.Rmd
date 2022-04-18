@@ -87,7 +87,7 @@ Figure 2 shows a correlation matrix of all variables included in the data. We se
 
 In our analysis, we removed population, GDP, GDIncome, and net income due to their high correlation. Additionally, World Bank does not have data for GDI and Income from 1960 to 1970 nor data for Energy Use and Energy Import after 2015. Therefore, the analysis in this report utilizes data from 1970 until 2015. 
 
-```{r correlation plot, echo = FALSE, fig.width=8, fig.height=5, fig.cap="\\label{fig:cor} Correlation matrix of all variables"}
+```{r correlation plot, echo = FALSE, fig.width=8, fig.height=5, fig.cap="\\label{fig:cor} Correlation matrix of all variables", results = "hide"}
 M <- na.omit(us_df[,-1])
 colnames(M) <- c("C02", "Population", "GDP", "GDP Growth", "GDI", "Income", "Urban", "Energy", "Energy Import", "Electricity")
 
@@ -105,7 +105,7 @@ In this report, we will first demonstrate the feasibility of a Bayesian linear r
 
 The first method that we propose to use is by linear regression. Since we are attempting to forecast future CO2 emissions, we use the following model, 
 $$Y_t = \beta' \begin{bmatrix} X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
-where $Y_t$ is the observation at time, $t$ and $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$. To determine the most important variables in predicting CO2 emissions, I will perform backward elimination and only keep the 5 most important predictors.
+where $Y_t$ is the observation at time, $t$, $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$ and $\epsilon_t \sim N(0, \sigma^2)$. To determine the most important variables in predicting CO2 emissions, we perform backward elimination and only keep the 5 most important predictors.
 
 ```{r, echo = TRUE}
 library(leaps)
@@ -123,7 +123,7 @@ models <- regsubsets(co2~., data = lagged_data, nvmax = 5, method = "backward")
 summary(models)
 ```
 
-As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption. We now fit a model which is trained on data from 1975-2004 and tested on data from 2014-2018.  
+As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption.  
 
 
 ```{r, echo = FALSE}
@@ -582,13 +582,13 @@ Our final model has the following posterior distribution for each parameter and 
 t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
 ```
 
-That said, one major limitation of this analysis is its ignorance of time series methodologies and nuances. Though we did consider basic detection of seasonality and lagged variables, additional consideration of the time series data is probably necessary to make any useful conclusions and to implement in conjunction with a Bayesian approach. Given additional time, more research into time series and Bayesian applications, such as hierarchical regression where some time element could create within group effects, could have contributed significantly to our study, not to mention interesting to learn. 
+That said, one major limitation of this analysis is its ignorance of time series methodologies and nuances. For example, our linear regression model used only a 5-year lagged variables as predictors. Through the use of moving average (MA) or ARIMA models, we would expect the frequentist approach to improve. Though we did consider basic detection of seasonality and lagged variables, additional consideration of the time series data is probably necessary to make any useful conclusions and to implement in conjunction with a Bayesian approach. Given additional time, more research into time series and Bayesian applications, such as hierarchical regression where some time element could create within group effects, could have contributed significantly to our study, not to mention interesting to learn. 
 
 ## References
+
 Hoff, P. D. (2009). A first course in Bayesian statistical methods. New York: Springer.
 
 Gelman, Andrew, Carlin, John B., Stern, Hal S. and Rubin, Donald B.. Bayesian Data Analysis. 2nd ed. : Chapman and Hall/CRC, 2004.
 
-## Appendix
 
 
