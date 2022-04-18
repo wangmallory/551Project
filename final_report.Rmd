@@ -72,7 +72,7 @@ In Figure 1, CO2 emissions in the US is shown to be increasing with time. The di
 
 Figure 2 shows a correlation matrix of all variables included in the data. We see many variables have extremely high correlation, as high as 1. As a result, we will want to pick a subset of these variables to avoid singularity when performing matrix calculations. 
 
-```{r, facet, echo = FALSE, warning = FALSE, fig.width=9 ,fig.height=6,fig.cap="\\label{fig:figs} Time series of CO2 and Auxiliary Variables"}
+```{r, facet, echo = FALSE, warning = FALSE, fig.width=8 ,fig.height=6,fig.cap="\\label{fig:facet} Time series of CO2 and Auxiliary Variables"}
 df.m <- melt(us_df, id = c("year"))
 
 
@@ -86,18 +86,16 @@ ggplot(df.m, aes(year, value)) +
 Figure 2 shows a correlation matrix of all variables included in the data. We see many variables have extremely high correlation, as high as 1. As a result, we will want to pick a subset of these variables to avoid singularity when performing matrix calculations. 
 
 In our analysis, we removed population, GDP, GDIncome, and net income due to their high correlation. Additionally, World Bank does not have data for GDI and Income from 1960 to 1970 nor data for Energy Use and Energy Import after 2015. Therefore, the analysis in this report utilizes data from 1970 until 2015. 
-```{r, correlation plot, echo = FALSE, fig.width=8,fig.height=5,fig.cap="\\label{fig:figs} Correlation matrix of all variables"}
+
+```{r correlation plot, echo = FALSE, fig.width=8, fig.height=5, fig.cap="\\label{fig:cor} Correlation matrix of all variables"}
 M <- na.omit(us_df[,-1])
 colnames(M) <- c("C02", "Population", "GDP", "GDP Growth", "GDI", "Income", "Urban", "Energy", "Energy Import", "Electricity")
 
-corrplot(cor(M),  order = "hclust", type = "lower",title = "Correlation Plot", 
-         mar=c(0,0,2,0), addCoef.col = "black", 
+corrplot(cor(M),  order = "hclust", type = "lower", mar=c(0,0,2,0), addCoef.col = "black", 
          tl.col="black", tl.srt=20, tl.cex=1, 
          diag=FALSE, 
          number.cex=.5)+ theme_custom()
 ```
-
-
 
 ## Methods
 
@@ -167,7 +165,7 @@ $$p(\gamma|y,X,\beta) \sim \text{inverse-gamma}\bigg(\frac{\nu_0+n}{2},\frac{\nu
   
 These specifications (and initial values of 1 and 0.5 for $\nu$ and $\sigma^2$) and were followed to implement a Gibb's sampling to obtain posterior distribution of size 5000. To evaluate these results, we split our data into train and test sets, where 1970 to 2005 were used for train and 2006 to 2015 were used for test. Prediction errors from OLS were compared with the Bayes error (both calculated as sum of squares of test CO2 and CO2 from each method). 
 
-```{r, echo = FALSE, fig.width=8,fig.height=5,fig.cap="\\label{fig:figs}Distribution of prediction error difference between OLS and Bayesian methods"}
+```{r ols, echo = FALSE, fig.width=4,fig.height=2,fig.cap="\\label{fig:ols}Distribution of prediction error difference between OLS and Bayesian methods"}
 us_df = read.csv("us_df.csv")
 us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
 us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
@@ -271,11 +269,136 @@ ggplot(pred_diff, aes(x = `bayes - ols`)) +
   geom_vline(xintercept = 0, lty = 2)
 ```
 
+Figure 3 shows the distribution of the difference in prediction error between OLS and Bayesian methods. We can see that Bayes consistently has lower error than OLS, at least when Year is used to predict CO2. With these results, we can add the remaining auxiliary variables; we would use the generalized form of the conditional distribution in above derivations. 
 
+As noted from Figure 1, our data are time series and may rely on time series analysis. In this section, we will evaluate whether lagged variables should be used in the Bayesian linear regression. On a cursory level, we considered whether our outcome variable has some seasonality. Without a full time series analysis, we tried to CO2 data using the classical seasonal decomposition by moving averages and found no seasonality was determined. Next, to replicate some lagged effect, we generated all auxiliary variables, lagged by 5  years and analyzed correlations like before and dropped (in addition to those we already dropped) 5-years lagged population, GDP, GDI, and Income. 
 
+```{r lag, echo = FALSE, fig.width=4,fig.height=2,fig.cap="\\label{fig:lag}Distribution of prediction error difference between OLS and Bayesian methods with lagged variables"}
+us_df = read.csv("us_df.csv")
+us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
 
+# Manual Lag
+lag5 <- cbind(us_df, us_df[,2:11] %>% mutate_all(lag, n = 5))
+colnames(lag5) <- c(colnames(us_df), paste(colnames(us_df[2:11]), "_5", sep=""))
 
+us_df = lag5[,-which(names(lag5) %in% c("pop","gdp","gdi","inc","co2_5","pop_5","gdp_5","gdi_5","inc_5"))]
+us_df = us_df[which(as.numeric(us_df$year) >= 1975),]
 
+# Linear Regression
+S = 5000
+X = cbind(rep(1, dim(us_df)[1]), seq(1, dim(us_df)[1], by = 1))
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 1
+s20 = 0.25
+set.seed(4444)
+inv = solve
+# Run linear regression gibbs sampling and obtain a posterior predictive distribution
+usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
+  
+  # Store samples
+  BETA = matrix(nrow = S, ncol = length(beta0))
+  SIGMA = numeric(S)
+  
+  # Starting values - just use prior values?
+  beta = c(midrange(us_df$co2), 0)
+  s2 = 0.7^2
+  
+  # Gibbs sampling algorithm from 9.2.1
+  for (s in 1:S) {
+    # 1a) Compute V and m
+    V = inv(inv(sigma0) + (t(X) %*% X) / s2)
+    m = V %*% (inv(sigma0) %*% beta0 + (t(X) %*% y) / s2)
+    
+    # 1b) sample beta
+    beta = mvrnorm(1, m, V)
+    
+    # 2a) Compute SSR(beta) (specific formula from 9.1)
+    ssr = (t(y) %*% y) - (2 * t(beta) %*% t(X) %*% y) + (t(beta) %*% t(X) %*% X %*% beta)
+    
+    # 2b) sample s2
+    s2 = 1 / rgamma(1, (nu0 + n) / 2, (nu0 * s20 + ssr) / 2)
+    BETA[s, ] = beta
+    SIGMA[s] = s2
+  }
+  
+  # Now sample posterior predictive - two weeks later
+  xpred = c(1, 56)
+  YPRED = rnorm(S, BETA %*% xpred, sqrt(SIGMA))
+  
+  YPRED
+})
+
+# Check how good the model is
+N = 10000
+pred_errors = t(sapply(1:N, function(i) {
+  y = us_df$co2
+  X = as.matrix(us_df[,-2])
+  ytrain = y[1:30]
+  Xtrain = X[1:30, ]
+  ytest = y[-c(1:30)]
+  Xtest = X[-c(1:30), ]
+  
+  # OLS
+  beta_ols = inv(t(Xtrain) %*% Xtrain) %*% t(Xtrain) %*% ytrain
+  beta_ols
+  
+  y_ols = Xtest %*% beta_ols
+  
+  pred_error_ols = sum((ytest - y_ols)^2) / length(ytest)
+  
+  # Bayes
+  y = ytrain
+  X = Xtrain
+  
+  n = dim(X)[1]
+  p = dim(X)[2]
+  
+  g = n
+  nu0 = 2
+  s20 = 1
+  
+  S = 1000
+  
+  Hg = (g / (g + 1)) * X %*% inv(t(X) %*% X) %*% t(X)
+  SSRg = t(y) %*% (diag(1, nrow = n) - Hg) %*% y
+  
+  s2 = 1 / rgamma(S, (nu0 + n) / 2, (nu0 * s20 + SSRg) / 2)
+  Vb = g * inv(t(X) %*% X) / (g + 1)
+  Eb = Vb %*% t(X) %*% y
+  
+  E = matrix(rnorm(S * p, 0, sqrt(s2)), S, p)
+  beta = t(t(E %*% chol(Vb)) + c(Eb))
+  
+  beta_bayes = as.matrix(colMeans(beta))
+  
+  y_bayes = Xtest %*% beta_bayes
+  
+  pred_error_bayes = sum((ytest - y_bayes)^2) / length(ytest)
+  c(pred_error_ols, pred_error_bayes)
+})) %>% as.data.frame
+colnames(pred_errors) = c('ols', 'bayes')
+pred_diff = pred_errors %>% transmute(`bayes - ols` = bayes - ols)
+ggplot(pred_diff, aes(x = `bayes - ols`)) +
+  geom_density() +
+  geom_vline(xintercept = 0, lty = 2)
+```
+
+Figure 4 shows the distribution of the difference in prediction error between OLS and Bayesian methods with lagged variables. Though the distribution with lagged variables still demonstrates improvement over classic linear regression, its center is much higher than the distribution without lagged variables.
+
+We also want to compare the model with and without lagged variable using Bayesian model comparison. Under the believe that many regression coefficients are equal to zero, generate a matrix Z such that $\beta_j = z_j \times b_j$ where $z_j \in \{0,1\}$ and our equation
+$$y_i = z_1b_1x_1+...+z_pb_px_p+\epsilon_i$$ 
+with $z_j$ indicating which variables has non-zero coefficients. We obtain posterior distribution for z by using the g-prior to evaluate $p(y|X,z)$ for each model z such that we obtain 
+$$p(z|y,X) = \frac{p(z)p(y|X,z)}{\sum_z p(z)p(y|X,z)}$$
+Using the g-prior distribution for $\beta$, we can compute the marginal probability following
+$$\{\beta_z|X_z, \sigma^2\} \sim \text{multivariate noraml}(0,g\sigma^2[X_z^TX_z]^{-1})$$
+And we can show the conditional density of $(y,\gamma)$ given $(X,z)$
+$$p(y|X,z,\gamma) \times p(\gamma) = (2\pi)^\frac{-n}{2}(1+g)^\frac{-p_z}{2}\times\bigg[\gamma^\frac{n}{2}e^\frac{-\gamma SSR_g^z}{2}\bigg]\times \bigg(\frac{\nu_0\sigma_0^2}{2}\bigg)^\frac{\nu_0}{2}\Gamma\bigg(\frac{\nu_0}{2}\bigg)^{-1}\bigg[\gamma^\frac{\nu_0}{2-1}e^\frac{-\gamma\nu_0\sigma_0^2}{2}\bigg]$$
+where 
+$$SSR_g^z = y^T\bigg(I = \frac{g}{g+1}X_z(X_z^TX_z)^{-1}X_z\bigg)y$$
 ## Comparison
 
 ## Conclusion

@@ -12,6 +12,7 @@ library(rstanarm)
 library(glmnet)
 library(resample)
 library(coda)
+library(statip)
 set.seed(4444)
 
 # Data 
