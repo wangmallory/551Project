@@ -101,26 +101,19 @@ corrplot(cor(M),  order = "hclust", type = "lower", mar=c(0,0,2,0), addCoef.col 
 
 In this report, we will first demonstrate the feasibility of a Bayesian linear regression by comparing it to a classical linear regression model approach. Next, build a Bayesian linear regression model with full auxiliary variables and consider time series related attributes in our data, such as lagging auxiliary variables. A comparison of auxiliary parameters with and without lagged components will be considered. Finally, we conclude with varying windows of posterior parameters estimates with our final Bayesian linear regression model. To reiterate, we use World Bank data depicted in the previous section from 1970 to 2015. Additional segmentation of data will be described in their respective sections. 
 
-### Classical Linear Regression
-
-The first method used to model the data was through a simpe linear regression. To understand the most important variables that predict CO2 emissions, we perform backwards elimination. Using this method, we see that the most important variables are the following: year, population, GDP, GDI, and energy consumption. In order to get a model which can be used to forecast future CO2 consumption, we use a simple linear regression with lagged predictors using the following model, 
-$$Y_t = \beta' \begin{bmatrix} X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
-where $Y_t$ is the observation at time, $t$, $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$ and $\epsilon_t \sim N(0, \sigma^2)$. This type of model is used in order to forecast predictions 5 years into the future. To determine the most important variables in predicting CO2 emissions, we perform backward elimination and only keep the 5 most important predictors.
-
-```{r, echo = TRUE}
-library(leaps)
+```{r, echo = FALSE}
+#library(leaps)
 
 # lagging the data 5 years
-lag5 <- us_df %>% mutate_all(lag, n = 5) 
-colnames(lag5) <- paste(colnames(us_df), "_5", sep="")
-lagged_data <- cbind(us_df, lag5) %>% dplyr::select(-c(3:12)) %>% na.omit()
+#lag5 <- us_df %>% mutate_all(lag, n = 5) 
+#colnames(lag5) <- paste(colnames(us_df), "_5", sep="")
+#lagged_data <- cbind(us_df, lag5) %>% dplyr::select(-c(3:12)) %>% na.omit()
 
 # backward elimination
-models <- regsubsets(co2~., data = lagged_data, nvmax = 5, method = "backward")
-summary(models)
+#models <- regsubsets(co2~., data = lagged_data, nvmax = 5, method = "backward")
+#summary(models)
 ```
 
-As seen by the output above, the most important lagged variables which I will include for the following analysis are population, GDI, NPI, population in urban areas, and electric power consumption. This type of analysis is
 
 ### Bayes Linear Regression
 
@@ -252,7 +245,10 @@ ggplot(pred_diff, aes(x = `bayes - ols`)) +
 
 Figure 3 shows the distribution of the difference in prediction error between OLS and Bayesian methods. We can see that Bayes consistently has lower error than OLS, at least when Year is used to predict CO2. With these results, we can add the remaining auxiliary variables; we would use the generalized form of the conditional distribution in above derivations. 
 
-As noted from Figure 1, our data are time series and may rely on time series analysis. In this section, we will evaluate whether lagged variables should be used in the Bayesian linear regression. On a cursory level, we considered whether our outcome variable has some seasonality. Without a full time series analysis, we tried to CO2 data using the classical seasonal decomposition by moving averages and found no seasonality was determined. Next, to replicate some lagged effect, we generated all auxiliary variables, lagged by 5  years and analyzed correlations like before and dropped (in addition to those we already dropped) 5-years lagged population, GDP, GDI, and Income. 
+As noted from Figure 1, our data are time series and may rely on time series analysis. In this section, we will evaluate whether lagged variables should be used in the Bayesian linear regression. On a cursory level, we considered whether our outcome variable has some seasonality. Without a full time series analysis, we tried to CO2 data using the classical seasonal decomposition by moving averages and found no seasonality was determined. Next, to replicate some lagged effect, we generated all auxiliary variables, lagged by 5 years and analyzed correlations like before and dropped (in addition to those we already dropped) 5-years lagged population, GDP, GDI, and Income. This type of model assumes takes following form,  \
+$$Y_t = \beta' \begin{bmatrix} X_t \\ X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
+
+where $Y_t$ is the observation at time, $t$, $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$ and $\epsilon_t \sim N(0, \sigma^2)$. 
 
 ```{r lag, echo = FALSE, fig.width=4,fig.height=2,fig.cap="\\label{fig:lag}Distribution of prediction error difference between OLS and Bayesian methods with lagged variables"}
 us_df = read.csv("us_df.csv")
@@ -537,7 +533,7 @@ ggplot(beta_df, aes(x = variable, y = coefficient, color = signif)) +
   geom_hline(yintercept = 0, lty = 2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-Figure 6 shows the intervals created from $beta^{(s+1)}$ for each predictor. Unlike Figure 5, all variables are significant. If we return to the previously described test set (data from 2006 to 2015), we can look at how the predicted and observed values compares in Figure 7. The predcited values follow the trend of observed relatively well but the scale is a little off. 
+Figure 6 shows the intervals created from $beta^{(s+1)}$ for each predictor. Unlike Figure 5, all variables are significant. If we return to the previously described test set (data from 2006 to 2015), we can look at how the predicted and observed values compares in Figure 7. The predicted values follow the trend of observed relatively well but the scale is a little off. 
 
 ```{r b, echo = FALSE, fig.width=5,fig.height=3,fig.cap="\\label{fig:b}Predicted values vs. observed values in test set"}
 y = us_df$co2
