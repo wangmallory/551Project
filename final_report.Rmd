@@ -567,7 +567,3 @@ Hoff, P. D. (2009). A first course in Bayesian statistical methods. New York: Sp
 
 Gelman, Andrew, Carlin, John B., Stern, Hal S. and Rubin, Donald B.. Bayesian Data Analysis. 2nd ed. : Chapman and Hall/CRC, 2004.
 
-## Appendix
-
-
-
