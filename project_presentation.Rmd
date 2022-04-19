@@ -7,7 +7,7 @@ output:
       theme: "AnnArbor"
       colortheme: "wolverine"
       fonttheme: "serif"
-      toc: true    
+      toc: false    
       slide_level: 3
       number_sections: true
 ---
@@ -15,15 +15,56 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 knitr::read_chunk("2_eda_vis.R")
+library(tidyverse)
+library(ggplot2)
+library(reshape)
+library(rstan)
+library(rstanarm)
+library(glmnet)
+library(resample)
+library(coda)
+library(tidyverse)
+library(ggplot2)
+library(reshape)
+library(corrplot)
+library(statip)
+library(MASS)
+library(tidyverse)
+library(leaps)
+set.seed(4444)
+
+theme_custom <- function() {
+  theme_bw() + # note ggplot2 theme is used as a basis
+    theme(plot.title = element_text(size = 10, face = "bold",
+                                    hjust = .5,
+                                    margin = margin(t = 5, b = 15)),
+          plot.caption = element_text(size = 9, hjust = 0, 
+                                      margin = margin(t = 15)),
+          panel.grid.major = element_line(colour = "grey88"),
+          panel.grid.minor = element_blank(),
+          legend.title = element_text(size = 10, face = "bold"),
+          legend.text = element_text(size = 10),
+          axis.text = element_text(size = 10),
+          axis.title.x = element_text(margin = margin(t = 10),
+                                      size = 10, face = "bold"),
+          axis.title.y = element_text(margin = margin(r = 10),
+                                      size = 10, face = "bold"))
+}
+
+# Data 
+us_df = read.csv("us_df.csv")
 ```
 
 ```{r, Library and theme, echo = FALSE}
 ```
+
 # Motivation
 
 - Climate affects everyone on Earth
 - Considered by many to be one of the biggest threats to humanity
-- It becomes increasingly important to understand, track and predict our effect on global warming
+- Increasing demand in the U.S. to understand, track and predict our effect on global warming
+
+Question: Does taking a Bayes approach to forecasting improve our estimates of environmental data?
 
 # Data Introduction
 
@@ -45,25 +86,438 @@ knitr::read_chunk("2_eda_vis.R")
   - Energy Use, Net Energy Import, Electric Power Consumption
 
 
-
 ### Data Introduction 
 
 ```{r, facet, echo = FALSE, out.width = "70%", fig.align='center'}
 ```
-
 
 ### Data Introduction
 
 ```{r, correlation plot, echo = FALSE, fig.align='center', out.width="80%"}
 ```
 
-
-# Frequentist Approach
-
-
-
 # Bayesian Approach
 
+### Basic Model
 
-# Comparison
+Our first model, only using year to predict CO2 emissions,
+$$\begin{aligned}
+y_i &= \beta + \beta_{year}x_i + \epsilon_i\\
+\end{aligned}$$
 
+Our conditional:
+$$Y_i|x_i, \beta, \sigma^2 \sim N(\beta^Tx_i + \epsilon_i,\sigma^2)$$
+
+Likelihood:
+$$p(y_1,...,y_n|x_i, \beta, \sigma^2) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\bigg(-\frac{(y_i-\beta^Tx_i )^2}{2\sigma^2}\bigg)}$$
+
+
+With semi-conjugate prior for $\beta$:
+$$p(y|X,\beta,\sigma^2) \propto \exp{-\frac{1}{2\sigma^2}SSR(\beta)}$$
+
+
+### Basic Model Results
+
+Using 1970 to 2005 as training data and 2006 to 2015 for testing,
+
+```{r ols, echo = FALSE, fig.width=4,fig.height=2,}
+us_df = read.csv("us_df.csv")
+us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
+us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
+
+S = 5000
+X = cbind(rep(1, dim(us_df)[1]), seq(1, dim(us_df)[1], by = 1))
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 1
+s20 = 0.25
+inv = solve
+# Run linear regression gibbs sampling and obtain a posterior predictive distribution
+usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
+  
+  # Store samples
+  BETA = matrix(nrow = S, ncol = length(beta0))
+  SIGMA = numeric(S)
+  
+  # Starting values - just use prior values?
+  beta = c(midrange(us_df$co2), 0)
+  s2 = 0.7^2
+  
+  # Gibbs sampling algorithm from 9.2.1
+  for (s in 1:S) {
+    # 1a) Compute V and m
+    V = inv(inv(sigma0) + (t(X) %*% X) / s2)
+    m = V %*% (inv(sigma0) %*% beta0 + (t(X) %*% y) / s2)
+    
+    # 1b) sample beta
+    beta = mvrnorm(1, m, V)
+    
+    # 2a) Compute SSR(beta) (specific formula from 9.1)
+    ssr = (t(y) %*% y) - (2 * t(beta) %*% t(X) %*% y) + (t(beta) %*% t(X) %*% X %*% beta)
+    
+    # 2b) sample s2
+    s2 = 1 / rgamma(1, (nu0 + n) / 2, (nu0 * s20 + ssr) / 2)
+    BETA[s, ] = beta
+    SIGMA[s] = s2
+  }
+  
+  # Now sample posterior predictive - two weeks later
+  xpred = c(1, 56)
+  YPRED = rnorm(S, BETA %*% xpred, sqrt(SIGMA))
+  
+  YPRED
+})
+N = 1000
+pred_errors = t(sapply(1:N, function(i) {
+  y = us_df$co2
+  X = as.matrix(us_df[,-2])
+  ytrain = y[1:35]
+  Xtrain = X[1:35, ]
+  ytest = y[-c(1:35)]
+  Xtest = X[-c(1:35), ]
+  
+  # OLS
+  beta_ols = inv(t(Xtrain) %*% Xtrain) %*% t(Xtrain) %*% ytrain
+  beta_ols
+  
+  y_ols = Xtest %*% beta_ols
+  
+  pred_error_ols = sum((ytest - y_ols)^2) / length(ytest)
+  
+  # Bayes
+  y = ytrain
+  X = Xtrain
+  
+  n = dim(X)[1]
+  p = dim(X)[2]
+  
+  g = n
+  nu0 = 2
+  s20 = 1
+  
+  S = 1000
+  
+  Hg = (g / (g + 1)) * X %*% inv(t(X) %*% X) %*% t(X)
+  SSRg = t(y) %*% (diag(1, nrow = n) - Hg) %*% y
+  
+  s2 = 1 / rgamma(S, (nu0 + n) / 2, (nu0 * s20 + SSRg) / 2)
+  Vb = g * inv(t(X) %*% X) / (g + 1)
+  Eb = Vb %*% t(X) %*% y
+  
+  E = matrix(rnorm(S * p, 0, sqrt(s2)), S, p)
+  beta = t(t(E %*% chol(Vb)) + c(Eb))
+  
+  beta_bayes = as.matrix(colMeans(beta))
+  
+  y_bayes = Xtest %*% beta_bayes
+  
+  pred_error_bayes = sum((ytest - y_bayes)^2) / length(ytest)
+  c(pred_error_ols, pred_error_bayes)
+})) %>% as.data.frame
+colnames(pred_errors) = c('ols', 'bayes')
+pred_diff = pred_errors %>% transmute(`bayes - ols` = bayes - ols)
+ggplot(pred_diff, aes(x = `bayes - ols`)) +
+  geom_density() +
+  geom_vline(xintercept = 0, lty = 2)
+```
+
+### Adding Covariates
+
+After adding lagged data and removing covariates which were highly correlated, the model takes the form,
+$$Y_t = \beta' \begin{bmatrix} X_t \\ X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
+
+
+
+### More complex model
+
+```{r lag, echo = FALSE, fig.width=4,fig.height=2}
+us_df = read.csv("us_df.csv")
+us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
+
+# Manual Lag
+lag5 <- cbind(us_df, us_df[,2:11] %>% mutate_all(lag, n = 5))
+colnames(lag5) <- c(colnames(us_df), paste(colnames(us_df[2:11]), "_5", sep=""))
+
+us_df = lag5[,-which(names(lag5) %in% c("pop","gdp","gdi","inc","co2_5","pop_5","gdp_5","gdi_5","inc_5"))]
+us_df = us_df[which(as.numeric(us_df$year) >= 1975),]
+
+# Linear Regression
+S = 5000
+X = cbind(rep(1, dim(us_df)[1]), seq(1, dim(us_df)[1], by = 1))
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 1
+s20 = 0.25
+set.seed(4444)
+inv = solve
+# Run linear regression gibbs sampling and obtain a posterior predictive distribution
+usco2_pred = apply(t(us_df[,2]), MARGIN = 1, function(y) {
+  
+  # Store samples
+  BETA = matrix(nrow = S, ncol = length(beta0))
+  SIGMA = numeric(S)
+  
+  # Starting values - just use prior values?
+  beta = c(midrange(us_df$co2), 0)
+  s2 = 0.7^2
+  
+  # Gibbs sampling algorithm from 9.2.1
+  for (s in 1:S) {
+    # 1a) Compute V and m
+    V = inv(inv(sigma0) + (t(X) %*% X) / s2)
+    m = V %*% (inv(sigma0) %*% beta0 + (t(X) %*% y) / s2)
+    
+    # 1b) sample beta
+    beta = mvrnorm(1, m, V)
+    
+    # 2a) Compute SSR(beta) (specific formula from 9.1)
+    ssr = (t(y) %*% y) - (2 * t(beta) %*% t(X) %*% y) + (t(beta) %*% t(X) %*% X %*% beta)
+    
+    # 2b) sample s2
+    s2 = 1 / rgamma(1, (nu0 + n) / 2, (nu0 * s20 + ssr) / 2)
+    BETA[s, ] = beta
+    SIGMA[s] = s2
+  }
+  
+  # Now sample posterior predictive - two weeks later
+  xpred = c(1, 56)
+  YPRED = rnorm(S, BETA %*% xpred, sqrt(SIGMA))
+  
+  YPRED
+})
+
+# Check how good the model is
+N = 10000
+pred_errors = t(sapply(1:N, function(i) {
+  y = us_df$co2
+  X = as.matrix(us_df[,-2])
+  ytrain = y[1:30]
+  Xtrain = X[1:30, ]
+  ytest = y[-c(1:30)]
+  Xtest = X[-c(1:30), ]
+  
+  # OLS
+  beta_ols = inv(t(Xtrain) %*% Xtrain) %*% t(Xtrain) %*% ytrain
+  beta_ols
+  
+  y_ols = Xtest %*% beta_ols
+  
+  pred_error_ols = sum((ytest - y_ols)^2) / length(ytest)
+  
+  # Bayes
+  y = ytrain
+  X = Xtrain
+  
+  n = dim(X)[1]
+  p = dim(X)[2]
+  
+  g = n
+  nu0 = 2
+  s20 = 1
+  
+  S = 1000
+  
+  Hg = (g / (g + 1)) * X %*% inv(t(X) %*% X) %*% t(X)
+  SSRg = t(y) %*% (diag(1, nrow = n) - Hg) %*% y
+  
+  s2 = 1 / rgamma(S, (nu0 + n) / 2, (nu0 * s20 + SSRg) / 2)
+  Vb = g * inv(t(X) %*% X) / (g + 1)
+  Eb = Vb %*% t(X) %*% y
+  
+  E = matrix(rnorm(S * p, 0, sqrt(s2)), S, p)
+  beta = t(t(E %*% chol(Vb)) + c(Eb))
+  
+  beta_bayes = as.matrix(colMeans(beta))
+  
+  y_bayes = Xtest %*% beta_bayes
+  
+  pred_error_bayes = sum((ytest - y_bayes)^2) / length(ytest)
+  c(pred_error_ols, pred_error_bayes)
+})) %>% as.data.frame
+colnames(pred_errors) = c('ols', 'bayes')
+pred_diff = pred_errors %>% transmute(`bayes - ols` = bayes - ols)
+ggplot(pred_diff, aes(x = `bayes - ols`)) +
+  geom_density() +
+  geom_vline(xintercept = 0, lty = 2)
+```
+
+
+
+### Model Selection with Gibbs Sampler
+
+1. Create $Z$ matrix such that $\beta_j = z_j \times b_j$ where $z_j \in \{0,1\}$
+2. Random order sample from $p(z_j|z_{-j},y,X)$.
+3. Update $z^{(s+1)}$.
+4. Sample $\sigma^{2(s+1)}$ from $p(\sigma^2|z^{(s+1)},y,X)$.
+5) Sample $\beta^{(s+1)}$ from $p(\beta|z^{(s+1)},\sigma^{2(s+1)},y,X)$.
+
+### Model Selection with lagged covariates
+
+```{r mslag, echo = FALSE, fig.width=4,fig.height=3}
+S = 5000
+X = as.matrix(us_df[,-2])
+y = us_df[,"co2"]
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+g = n
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 2
+s20 = 1
+set.seed(4444)
+inv = solve
+# Run linear regression with g-prior
+Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
+SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+
+s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
+
+Vb <- g*solve(t(X)%*%X)/(g+1)
+Eb <- Vb%*%t(X)%*%y
+
+E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
+beta <- t(t(E%*%chol(Vb))+c(Eb))
+
+lpy.X <- function(y,X, g=length(y), nu0=1, s20=try(summary(lm(y~1+X))$sigma^2,silent = TRUE)){
+  n<-dim(X)[1]
+  p<-dim(X)[2]
+  if(p==0){Hg <- 0; s20 <- mean(y^2)}
+  if(p>0){Hg <- (g/(g+1))*X%*%solve(t(X)%*%X)%*%t(X)}
+  SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+  -0.5*(n*log(pi)+p*log(1+g)+(nu0+n)*log(nu0*s20+SSRg)-nu0*log(nu0*s20))+lgamma((nu0+n)/2)-lgamma(nu0/2)
+}
+z <- rep(1,dim(X)[2])
+lpy.c<-lpy.X(y,X[,z==1,drop=FALSE])
+S<-10000
+Z<-matrix(NA,S,dim(X)[2])
+for(s in 1:S){
+  for(j in sample(1:dim(X)[2])){
+    zp <- z
+    zp[j]<-1-zp[j]
+    lpy.p<-lpy.X(y,X[,zp==1,drop=FALSE])
+    r<-(lpy.p-lpy.c)*(-1)^(zp[j]==0)
+    z[j]<-rbinom(1,1,1/(1+exp(-r)))
+    if(z[j]==zp[j]){lpy.c<-lpy.p}
+  }
+  Z[s,]<-z
+}
+
+#colSums(Z)/S
+
+X = X*Z[1:dim(X)[1],]
+Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
+SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+
+s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
+
+Vb <- g*solve(t(X)%*%X)/(g+1)
+Eb <- Vb%*%t(X)%*%y
+
+E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
+beta <- t(t(E%*%chol(Vb))+c(Eb))
+
+# t(apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)))
+
+signif = apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)) %>%
+  apply(MARGIN = 2, FUN = function(y) !(y[1] < 0 && 0 < y[3]))
+beta_df = as.data.frame(beta) %>%
+  gather(key = 'variable', val = 'coefficient') %>%
+  mutate(signif = signif[variable])
+ggplot(beta_df, aes(x = variable, y = coefficient, color = signif)) +
+  stat_summary(fun = mean, fun.min = function(y) quantile(y, probs = c(0.025)), fun.max = function(y) quantile(y, probs = c(0.975))) +
+  geom_hline(yintercept = 0, lty = 2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+
+### Model Selection without lagged covariates
+
+
+```{r ms, cache=TRUE, cache.path="ms/", echo = FALSE, fig.width=5,fig.height=3}
+us_df = read.csv("us_df.csv")
+us_df = us_df[which(as.numeric(us_df$year) >= 1970 & as.numeric(us_df$year) <= 2014),]
+us_df = us_df[,-which(names(us_df) %in% c("pop","gdp","gdi","inc"))]
+
+S = 5000
+X = as.matrix(us_df[,-2])
+y = us_df[,"co2"]
+n = dim(X)[1]
+p = dim(X)[2]
+# Prior
+g = n
+beta0 = c(midrange(us_df$co2), 0)
+sigma0 = rbind(c(0.25, 0), c(0, 0.1))
+nu0 = 2
+s20 = 1
+set.seed(4444)
+inv = solve
+# Run linear regression with g-prior
+Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
+SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+
+s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
+
+Vb <- g*solve(t(X)%*%X)/(g+1)
+Eb <- Vb%*%t(X)%*%y
+
+E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
+beta <- t(t(E%*%chol(Vb))+c(Eb))
+
+lpy.X <- function(y,X, g=length(y), nu0=1, s20=try(summary(lm(y~1+X))$sigma^2,silent = TRUE)){
+  n<-dim(X)[1]
+  p<-dim(X)[2]
+  if(p==0){Hg <- 0; s20 <- mean(y^2)}
+  if(p>0){Hg <- (g/(g+1))*X%*%solve(t(X)%*%X)%*%t(X)}
+  SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+  -0.5*(n*log(pi)+p*log(1+g)+(nu0+n)*log(nu0*s20+SSRg)-nu0*log(nu0*s20))+lgamma((nu0+n)/2)-lgamma(nu0/2)
+}
+z <- rep(1,dim(X)[2])
+lpy.c<-lpy.X(y,X[,z==1,drop=FALSE])
+S<-10000
+Z<-matrix(NA,S,dim(X)[2])
+for(s in 1:S){
+  for(j in sample(1:dim(X)[2])){
+    zp <- z
+    zp[j]<-1-zp[j]
+    lpy.p<-lpy.X(y,X[,zp==1,drop=FALSE])
+    r<-(lpy.p-lpy.c)*(-1)^(zp[j]==0)
+    z[j]<-rbinom(1,1,1/(1+exp(-r)))
+    if(z[j]==zp[j]){lpy.c<-lpy.p}
+  }
+  Z[s,]<-z
+}
+X = X*Z[1:dim(X)[1],]
+Hg <- (g/(g+1)) * X%*%solve(t(X)%*%X)%*%t(X)
+SSRg <- t(y)%*%(diag(1,nrow=n)-Hg)%*%y
+
+s2 <- 1/rgamma(S,(nu0+n)/2, (nu0*s20+SSRg)/2)
+
+Vb <- g*solve(t(X)%*%X)/(g+1)
+Eb <- Vb%*%t(X)%*%y
+
+E <- matrix(rnorm(S*p, 0, sqrt(s2)),S,p)
+beta <- t(t(E%*%chol(Vb))+c(Eb))
+
+signif = apply(beta, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.5, 0.975)) %>%
+  apply(MARGIN = 2, FUN = function(y) !(y[1] < 0 && 0 < y[3]))
+beta_df = as.data.frame(beta) %>%
+  gather(key = 'variable', val = 'coefficient') %>%
+  mutate(signif = signif[variable])
+ggplot(beta_df, aes(x = variable, y = coefficient, color = signif)) +
+  stat_summary(fun = mean, fun.min = function(y) quantile(y, probs = c(0.025)), fun.max = function(y) quantile(y, probs = c(0.975))) +
+  geom_hline(yintercept = 0, lty = 2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+# Conclusion and Future Work
+
+- Bayes approach improved estimates when compared to the frequentist method
+- Limited by our knowledge of time series method
+- Expect that ARIMA or MA models would improve the frequentist approach

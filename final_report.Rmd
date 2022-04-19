@@ -117,7 +117,7 @@ In this report, we will first demonstrate the feasibility of a Bayesian linear r
 
 ### Bayes Linear Regression
 
-In this section, we first seek to validate our choice of method by comparing the results of the Bayesian linear regression with the results of the classic linear regression. Next, we consider whether to include lagged variables by comparing their respective Bayes factors in model selection. Finally, we discuss the resulting model and the posterior distribution created.  
+In this section, we first seek to validate our choice of method by comparing the results of the Bayesian linear regression with the results of a classic linear regression. Next, we consider whether to include lagged variables by comparing their respective Bayes factors in model selection. Finally, we discuss the resulting model and the posterior distribution created.  
 
 First, we start with a basic model where CO2 is explained only by Year. 
 $$\begin{aligned}
@@ -132,12 +132,12 @@ $$Y_i|x_i, \beta, \sigma^2 \sim N(\beta^Tx_i + \epsilon_i,\sigma^2)$$
 $$p(y_1,...,y_n|x_i, \beta, \sigma^2) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\bigg(-\frac{(y_i-\beta^Tx_i )^2}{2\sigma^2}\bigg)}$$
   which is maximized when the sum of squared residuals is minimized, which can be written as
 $$SSR(\beta) = y^Ty - 2\beta^TX^Ty + \beta^TX^TX\beta$$
-  Now we consider the semiconjugated prior of $\beta$,
+  Now we consider the semiconjugate prior of $\beta$,
 $$p(y|X,\beta,\sigma^2) \propto \exp{-\frac{1}{2\sigma^2}SSR(\beta)}$$
   and we have the following relationship
 $$p(\gamma|y,X,\beta) \sim \text{inverse-gamma}\bigg(\frac{\nu_0+n}{2},\frac{\nu_0\sigma^2_0 + SSR(\beta)}{2}\bigg)$$
   
-These specifications (and initial values of 1 and 0.5 for $\nu$ and $\sigma^2$) and were followed to implement a Gibb's sampling to obtain posterior distribution of size 5000. To evaluate these results, we split our data into train and test sets, where 1970 to 2005 were used for train and 2006 to 2015 were used for test. Prediction errors from OLS were compared with the Bayes error (both calculated as sum of squares of test CO2 and CO2 from each method). 
+These specifications (and initial values of 1 and 0.5 for $\nu$ and $\sigma^2$) and were followed to implement a Gibb's sampler to obtain posterior distribution of size 5000. To evaluate these results, we split our data into train and test sets, where 1970 to 2005 were used for train and 2006 to 2015 were used for test. Prediction errors from OLS were compared with the Bayes error (both calculated as sum of squares of test CO2 and CO2 from each method). 
 
 ```{r ols, echo = FALSE, fig.width=4,fig.height=2,fig.cap="\\label{fig:ols}Distribution of prediction error difference between OLS and Bayesian methods"}
 us_df = read.csv("us_df.csv")
@@ -245,7 +245,7 @@ ggplot(pred_diff, aes(x = `bayes - ols`)) +
 
 Figure 3 shows the distribution of the difference in prediction error between OLS and Bayesian methods. We can see that Bayes consistently has lower error than OLS, at least when Year is used to predict CO2. With these results, we can add the remaining auxiliary variables; we would use the generalized form of the conditional distribution in above derivations. 
 
-As noted from Figure 1, our data are time series and may rely on time series analysis. In this section, we will evaluate whether lagged variables should be used in the Bayesian linear regression. On a cursory level, we considered whether our outcome variable has some seasonality. Without a full time series analysis, we tried to CO2 data using the classical seasonal decomposition by moving averages and found no seasonality was determined. Next, to replicate some lagged effect, we generated all auxiliary variables, lagged by 5 years and analyzed correlations like before and dropped (in addition to those we already dropped) 5-years lagged population, GDP, GDI, and Income. This type of model assumes takes following form,  \
+As noted from Figure 1, our data are time series and may rely on time series analysis. In this section, we will evaluate whether lagged variables should be used in the Bayesian linear regression. On a cursory level, we considered whether our outcome variable has some seasonality. Without a full time series analysis, we tried to CO2 data using the classical seasonal decomposition by moving averages and found no seasonality was determined. Next, to replicate some lagged effect, we generated all auxiliary variables, lagged by 5 years and analyzed correlations like before and dropped (in addition to those we already dropped) 5-years lagged population, GDP, GDI, and Income. This type of model assumes takes following form,  
 $$Y_t = \beta' \begin{bmatrix} X_t \\ X_{t-5} \\ Y_{t-5} \end{bmatrix} + \epsilon_t$$
 
 where $Y_t$ is the observation at time, $t$, $X_{t-5}, Y_{t-5}$ is the data at time, $t-5$ and $\epsilon_t \sim N(0, \sigma^2)$. 
@@ -366,7 +366,7 @@ ggplot(pred_diff, aes(x = `bayes - ols`)) +
 
 Figure 4 shows the distribution of the difference in prediction error between OLS and Bayesian methods with lagged variables. Though the distribution with lagged variables still demonstrates improvement over classic linear regression, its center is much higher than the distribution without lagged variables.
 
-We also want to compare the model with and without lagged variable using Bayesian model comparison. Under the believe that many regression coefficients are equal to zero, generate a matrix Z such that $\beta_j = z_j \times b_j$ where $z_j \in \{0,1\}$ and our equation
+We also want to compare the model with and without lagged variable using Bayesian model comparison. Under the belief that many regression coefficients are equal to zero, generate a matrix Z such that $\beta_j = z_j \times b_j$ where $z_j \in \{0,1\}$ and our equation
 $$y_i = z_1b_1x_1+...+z_pb_px_p+\epsilon_i$$ 
 with $z_j$ indicating which variables has non-zero coefficients. We obtain posterior distribution for z by using the g-prior to evaluate $p(y|X,z)$ for each model z such that we obtain 
 $$p(z|y,X) = \frac{p(z)p(y|X,z)}{\sum_z p(z)p(y|X,z)}$$
@@ -377,7 +377,7 @@ $$p(y|X,z,\gamma) \times p(\gamma) = (2\pi)^\frac{-n}{2}(1+g)^\frac{-p_z}{2}\tim
 where 
 $$SSR_g^z = y^T\bigg(I = \frac{g}{g+1}X_z(X_z^TX_z)^{-1}X_z\bigg)y$$
 
-Here, we set $g = n$ to use the unit information prior for $p(\sigma^2)$ in modeling z. We follow a similar Gibbs sampling scheme to generate $\{z^{(s+1),\sigma^{(s+1)},\beta^{(s+1)}}\}$ from $z^{(s)}$ by 1) create z matrix 2) in random order sample from $p(z_j|z_{-j},y,X)$ 3) update $z^{(s+1)}$ 3) sample $\sigma^{2(s+1)}$ from $p(\sigma^2|z^{(s+1)},y,X)$ and 5) sample $\beta^{(s+1)}$ from $p(\beta|z^{(s+1)},\sigma^{2(s+1)},y,X)$. 
+Here, we set $g = n$ to use the unit information prior for $p(\sigma^2)$ in modeling z. We follow a similar Gibbs sampling scheme to generate $\{z^{(s+1)},\sigma^{(s+1)},\beta^{(s+1)}\}$ from $z^{(s)}$ by 1) create z matrix 2) in random order sample from $p(z_j|z_{-j},y,X)$ 3) update $z^{(s+1)}$ 4) sample $\sigma^{2(s+1)}$ from $p(\sigma^2|z^{(s+1)},y,X)$ and 5) sample $\beta^{(s+1)}$ from $p(\beta|z^{(s+1)},\sigma^{2(s+1)},y,X)$. 
 
 ```{r mslag, echo = FALSE, fig.width=5,fig.height=3,fig.cap="\\label{fig:mslag}Intervals created from beta(s+1) with lagged variables"}
 S = 5000
