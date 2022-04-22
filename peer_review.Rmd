@@ -17,10 +17,13 @@ This group's project has to do with sentiment analysis of IMDb movie comments. T
 ### Strength
 
 Overall, I think this is a very intriguing data set and problem. The report has a very clear description for the pre-processing of the data and this leads very clearly into the methods for the paper. 
+Additionally, this paper used a lot of methods from outside the course, which makes very great application of the learnings from the course and how the results were gotten (not just using the functions).
 
 ### Weakness
 
 I would have like to seen more clear description of what variables are most indicative of a "positive" or "negative" sentiment. The paper hints at such when talking about key words in the LDA model.  
+
+It would be nice to have seen more specific details on the setup on the methods that we didn't learn in class (specific noted below).
 
 ### To Bayes
 
